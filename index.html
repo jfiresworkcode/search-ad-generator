@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Result Ad Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111;
+            color: white;
+        }
+
+        /* Font stack simulating Mobile Google Search */
+        .google-font {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        }
+
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #4b5563;
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none; 
+        }
+
+        /* Scrollbar for sidebar */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        /* Utilities */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Google Specific Shadows */
+        .google-shadow {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+        }
+        
+        /* Color Swatch Selected State */
+        .color-btn.selected {
+            ring-width: 2px;
+            ring-color: white;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row items-start justify-center p-4 md:p-8 gap-8">
+
+    <!-- CONTROLS SIDEBAR -->
+    <div class="bg-[#1e1e1e] border border-white/10 rounded-xl w-full max-w-sm shrink-0 md:sticky md:top-8 max-h-[calc(100vh-4rem)] overflow-y-auto sidebar-scroll shadow-2xl">
+        <div class="p-6 space-y-6">
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                <h1 class="text-xl font-bold text-white">Ad Generator</h1>
+                <span class="text-xs text-gray-500 font-mono">v1.6</span>
+            </div>
+            
+            <!-- 1. Format & Theme -->
+            <div class="space-y-4">
+                <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Canvas Settings</label>
+                
+                <!-- Format Toggle -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setFormat('feed')" id="btn-fmt-feed" class="px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium transition hover:opacity-90">
+                        Feed (4:5)<br><span class="text-[10px] opacity-75">Square Safe Zone</span>
+                    </button>
+                    <button onclick="setFormat('story')" id="btn-fmt-story" class="px-3 py-2 bg-gray-700 text-white rounded text-sm font-medium transition hover:opacity-90">
+                        Story (9:16)<br><span class="text-[10px] opacity-75">Max Width</span>
+                    </button>
+                </div>
+
+                <!-- Theme Toggle -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setTheme('light')" id="btn-theme-light" class="px-3 py-2 bg-gray-700 text-gray-200 rounded text-sm font-medium transition flex items-center justify-center gap-2 hover:bg-gray-600">
+                        <div class="w-3 h-3 rounded-full bg-white border border-gray-400"></div> Light
+                    </button>
+                    <button onclick="setTheme('dark')" id="btn-theme-dark" class="px-3 py-2 bg-gray-700 text-gray-200 rounded text-sm font-medium transition flex items-center justify-center gap-2 hover:bg-gray-600">
+                        <div class="w-3 h-3 rounded-full bg-[#202124] border border-gray-600"></div> Dark
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Text Content -->
+            <div class="space-y-4 border-t border-white/10 pt-4">
+                <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Ad Content</label>
+                
+                <!-- Search Query -->
+                <div>
+                    <label class="text-[10px] text-gray-500 uppercase font-semibold mb-1 block">Search Query</label>
+                    <div class="relative">
+                        <input type="text" id="input-query" oninput="updateUI()" class="w-full bg-black/30 text-white text-sm p-2 pl-8 rounded border border-white/10 focus:border-blue-500 outline-none" placeholder="Search query...">
+                        <svg class="w-3 h-3 text-gray-500 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                </div>
+
+                <!-- POV Tag -->
+                <div>
+                    <label class="text-[10px] text-gray-500 uppercase font-semibold mb-2 block">POV Tag Style</label>
+                    
+                    <!-- Color Picker -->
+                    <div class="grid grid-cols-5 gap-2 mb-3" id="color-picker-container">
+                        <!-- Buttons injected by JS -->
+                    </div>
+
+                    <textarea id="input-pov" oninput="updateUI()" rows="2" class="w-full bg-black/30 text-white text-sm p-2 rounded border border-white/10 focus:border-blue-500 outline-none resize-none" placeholder="POV: ..."></textarea>
+                </div>
+
+                <!-- Body Copy -->
+                <div>
+                    <label class="text-[10px] text-gray-500 uppercase font-semibold mb-1 block">Main Body Copy</label>
+                    <textarea id="input-body" oninput="updateUI()" rows="3" class="w-full bg-black/30 text-white text-sm p-2 rounded border border-white/10 focus:border-blue-500 outline-none" placeholder="Ad body text..."></textarea>
+                </div>
+
+                 <!-- Footer Brand Info -->
+                 <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] text-gray-500 uppercase font-semibold mb-1 block">Brand Name</label>
+                        <input type="text" id="input-brand-name" oninput="updateUI()" class="w-full bg-black/30 text-white text-sm p-2 rounded border border-white/10 focus:border-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 uppercase font-semibold mb-1 block">Display URL</label>
+                        <input type="text" id="input-brand-url" oninput="updateUI()" class="w-full bg-black/30 text-white text-sm p-2 rounded border border-white/10 focus:border-blue-500 outline-none">
+                    </div>
+                 </div>
+                 <div>
+                    <label class="text-[10px] text-gray-500 uppercase font-semibold mb-1 block">Footer Description</label>
+                    <input type="text" id="input-footer-desc" oninput="updateUI()" class="w-full bg-black/30 text-white text-sm p-2 rounded border border-white/10 focus:border-blue-500 outline-none">
+                </div>
+            </div>
+
+            <!-- 3. Typography Sizing -->
+            <div class="space-y-4 border-t border-white/10 pt-4">
+                <label class="text-xs text-gray-400 font-bold uppercase tracking-wider">Typography Sizing</label>
+
+                <!-- Search Bar Font -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-500">Search Bar Text</span>
+                        <span id="val-query-size" class="text-blue-400 font-mono">16px</span>
+                    </div>
+                    <input type="range" min="12" max="24" value="16" id="slider-query-size" oninput="updateUI()">
+                </div>
+
+                <!-- POV Font -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-500">POV Tag</span>
+                        <span id="val-pov-size" class="text-blue-400 font-mono">20px</span>
+                    </div>
+                    <input type="range" min="14" max="32" value="20" id="slider-pov-size" oninput="updateUI()">
+                </div>
+
+                <!-- Body Font -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-500">Body Text</span>
+                        <span id="val-body-size" class="text-blue-400 font-mono">18px</span>
+                    </div>
+                    <input type="range" min="12" max="28" value="18" id="slider-body-size" oninput="updateUI()">
+                </div>
+
+                <!-- Brand Name Font -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-500">Brand Name</span>
+                        <span id="val-brand-size" class="text-blue-400 font-mono">20px</span>
+                    </div>
+                    <input type="range" min="14" max="32" value="20" id="slider-brand-size" oninput="updateUI()">
+                </div>
+
+                <!-- Footer Description Font -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-500">Footer Description</span>
+                        <span id="val-footer-size" class="text-blue-400 font-mono">14px</span>
+                    </div>
+                    <input type="range" min="10" max="24" value="14" id="slider-footer-size" oninput="updateUI()">
+                </div>
+            </div>
+
+            <!-- Download -->
+            <div class="pt-4 border-t border-white/10">
+                <button onclick="downloadAd()" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold shadow-lg transition flex items-center justify-center gap-2 group">
+                    <svg class="w-5 h-5 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Download PNG
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PREVIEW STAGE -->
+    <div class="flex-1 w-full min-h-[90vh] flex items-center justify-center relative p-4 bg-[#111]">
+        
+        <!-- The "Phone" Container -->
+        <div id="preview-container" class="relative transition-all duration-500 ease-in-out shadow-2xl rounded-[2.5rem] border-[8px] border-[#2a2a2a] overflow-hidden bg-white google-font select-none group">
+            
+            <!-- Canvas Content Wrapper -->
+            <!-- Classes updated dynamically for Feed Centering vs Story layout -->
+            <div id="canvas-content" class="w-full h-full flex flex-col relative">
+
+                <!-- 1. HEADER SECTION (Search Bar + Tabs) -->
+                <!-- Dynamic Padding & Margins injected via JS -->
+                <div id="header-section" class="w-full z-20 bg-white transition-all duration-300">
+                    
+                    <!-- Search Bar Mockup -->
+                    <div id="search-bar" class="w-full rounded-full flex items-center px-4 py-3 google-shadow mb-4 bg-white border border-transparent transition-colors duration-300">
+                        <!-- Search Icon -->
+                        <div class="mr-3 text-gray-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        
+                        <!-- Query Text -->
+                        <div id="display-query" class="flex-1 truncate text-[#202124]">
+                            why are jeans so uncomfortable
+                        </div>
+
+                        <!-- Mic / Lens Icons (Hidden in Story Mode) -->
+                        <div id="search-icons" class="flex items-center gap-3 pl-2 border-l border-transparent">
+                            <!-- Mic Icon -->
+                            <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                            <!-- Lens Icon -->
+                            <svg class="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5.5-2.5l7.51-3.49L17.5 6.5 9.99 9.99 6.5 17.5zm5.5-6.6c.61 0 1.1.49 1.1 1.1s-.49 1.1-1.1 1.1-1.1-.49-1.1-1.1.49-1.1 1.1-1.1z"/></svg>
+                        </div>
+                    </div>
+
+                    <!-- Search Tabs (Updated: No underline on 'All') -->
+                    <div class="flex items-center gap-6 overflow-hidden text-sm font-medium border-b border-gray-200" id="tabs-container">
+                        <div class="pb-2 text-[#1a73e8] cursor-pointer">All</div>
+                        <div class="pb-2 text-gray-500 cursor-pointer">News</div>
+                        <div class="pb-2 text-gray-500 cursor-pointer">Images</div>
+                        <div class="pb-2 text-gray-500 cursor-pointer">Videos</div>
+                        <div class="pb-2 text-gray-500 cursor-pointer">Maps</div>
+                        <div class="pb-2 text-gray-500 cursor-pointer">More</div>
+                    </div>
+                </div>
+
+                <!-- 2. MAIN CONTENT AREA (POV + Body) -->
+                <!-- Flex-1 allows this to expand, flex justify-center aligns vertical content in Feed mode -->
+                <div id="main-content-area" class="flex-1 w-full px-4 flex flex-col relative z-10 transition-all duration-300">
+                    
+                    <!-- Content Wrapper for Vertical Centering -->
+                    <div class="w-full space-y-4">
+                        <!-- POV Tag -->
+                        <div id="pov-container" class="inline-block bg-[#d93025] rounded-[10px] px-3 py-2 w-auto max-w-full shadow-sm transition-colors duration-200">
+                            <h2 id="display-pov" class="text-white font-bold leading-tight break-words">
+                                POV: You decided life is too short to wear uncomfortable pants
+                            </h2>
+                        </div>
+
+                        <!-- Body Text -->
+                        <div id="display-body" class="text-[#202124] leading-relaxed break-words">
+                            If you dread putting on real pants in the morning, it means your wardrobe is working against you. Sacrificing circulation just to look presentable is an outdated concept.
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 3. FOOTER SECTION (Search Result Style) -->
+                <div id="footer-section" class="w-full px-4 pb-8 pt-4 transition-colors duration-300 relative z-10">
+                    <!-- Brand / Ad Label -->
+                    <!-- Removed "Sponsored" and ensured center alignment -->
+                    <div class="flex items-center gap-3 mb-1 h-8"> 
+                        <!-- Favicon Circle -->
+                        <div id="favicon-container" class="w-7 h-7 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0 border border-gray-200 transition-colors duration-300">
+                            <!-- Custom Logo Image -->
+                            <img src="logo.png" class="w-5 h-5 object-contain" alt="Bearbottom Logo">
+                        </div>
+                        
+                        <!-- URL Only (Vertically Centered with Logo) -->
+                        <div class="flex flex-col justify-center h-full">
+                            <span id="display-brand-url" class="text-xs text-[#202124]">bearbottomclothing.com</span>
+                        </div>
+                        
+                        <!-- Options Dots -->
+                        <div class="ml-auto">
+                            <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                        </div>
+                    </div>
+
+                    <!-- Blue Link Title -->
+                    <h3 id="display-brand-name" class="text-xl text-[#1a0dab] hover:underline cursor-pointer font-medium mb-1 truncate">
+                        Bearbottom Clothing
+                    </h3>
+
+                    <!-- Description -->
+                    <p id="display-footer-desc" class="text-sm text-[#4d5156] leading-snug line-clamp-2">
+                        Experience the best-selling Stretch Jogger. Fast shipping & free returns.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const colors = [
+            '#d93025', // Red (Default)
+            '#1a73e8', // Blue
+            '#188038', // Green
+            '#e37400', // Orange
+            '#a142f4', // Purple
+            '#d01884', // Pink
+            '#000000', // Black
+            '#5f6368', // Gray
+            '#00796b', // Teal
+            '#0d47a1'  // Navy
+        ];
+
+        // --- State Management ---
+        const state = {
+            format: 'feed', // 'feed' | 'story'
+            theme: 'light', // 'light' | 'dark'
+            povColor: '#d93025',
+            text: {
+                query: "why are jeans so uncomfortable",
+                pov: "POV: You decided life is too short to wear uncomfortable pants",
+                body: "If you dread putting on real pants in the morning, it means your wardrobe is working against you. Sacrificing circulation just to look presentable is an outdated concept.",
+                brandName: "Bearbottom Clothing",
+                brandUrl: "bearbottomclothing.com",
+                footerDesc: "Experience the best-selling Stretch Jogger. Fast shipping & free returns."
+            },
+            sizes: {
+                query: 16,
+                pov: 20,
+                body: 18,
+                brand: 20,
+                footer: 14
+            }
+        };
+
+        // --- Init ---
+        function init() {
+            // Render Color Picker
+            renderColorPicker();
+
+            // Set Input Values
+            document.getElementById('input-query').value = state.text.query;
+            document.getElementById('input-pov').value = state.text.pov;
+            document.getElementById('input-body').value = state.text.body;
+            document.getElementById('input-brand-name').value = state.text.brandName;
+            document.getElementById('input-brand-url').value = state.text.brandUrl;
+            document.getElementById('input-footer-desc').value = state.text.footerDesc;
+
+            // Set Initial Format/Theme Button States
+            updateButtonStates();
+            updateUI();
+        }
+
+        function renderColorPicker() {
+            const container = document.getElementById('color-picker-container');
+            container.innerHTML = ''; // Clear
+
+            colors.forEach(color => {
+                const btn = document.createElement('button');
+                btn.className = `w-8 h-8 rounded-full cursor-pointer transition-transform border border-white/20 color-btn ${color === state.povColor ? 'selected' : ''}`;
+                btn.style.backgroundColor = color;
+                btn.onclick = () => setPovColor(color);
+                container.appendChild(btn);
+            });
+        }
+
+        // --- Core Update Logic ---
+        function updateUI() {
+            // 1. Capture Inputs
+            state.text.query = document.getElementById('input-query').value;
+            state.text.pov = document.getElementById('input-pov').value;
+            state.text.body = document.getElementById('input-body').value;
+            state.text.brandName = document.getElementById('input-brand-name').value;
+            state.text.brandUrl = document.getElementById('input-brand-url').value;
+            state.text.footerDesc = document.getElementById('input-footer-desc').value;
+            
+            // 2. Capture Sliders
+            state.sizes.query = document.getElementById('slider-query-size').value;
+            state.sizes.pov = document.getElementById('slider-pov-size').value;
+            state.sizes.body = document.getElementById('slider-body-size').value;
+            state.sizes.brand = document.getElementById('slider-brand-size').value;
+            state.sizes.footer = document.getElementById('slider-footer-size').value;
+
+            // Update Slider Labels
+            document.getElementById('val-query-size').innerText = state.sizes.query + 'px';
+            document.getElementById('val-pov-size').innerText = state.sizes.pov + 'px';
+            document.getElementById('val-body-size').innerText = state.sizes.body + 'px';
+            document.getElementById('val-brand-size').innerText = state.sizes.brand + 'px';
+            document.getElementById('val-footer-size').innerText = state.sizes.footer + 'px';
+
+            // 3. Update DOM Elements
+            document.getElementById('display-query').innerText = state.text.query;
+            document.getElementById('display-pov').innerText = state.text.pov;
+            document.getElementById('display-body').innerText = state.text.body;
+            document.getElementById('display-brand-name').innerText = state.text.brandName;
+            document.getElementById('display-brand-url').innerText = state.text.brandUrl;
+            document.getElementById('display-footer-desc').innerText = state.text.footerDesc;
+
+            // 4. Apply Styles & Sizes
+            applyTypography();
+            applyFormat();
+            applyTheme();
+            applyPovColor();
+        }
+
+        function applyTypography() {
+            document.getElementById('display-query').style.fontSize = state.sizes.query + 'px';
+            document.getElementById('display-pov').style.fontSize = state.sizes.pov + 'px';
+            document.getElementById('display-body').style.fontSize = state.sizes.body + 'px';
+            document.getElementById('display-brand-name').style.fontSize = state.sizes.brand + 'px';
+            document.getElementById('display-footer-desc').style.fontSize = state.sizes.footer + 'px';
+        }
+
+        function applyPovColor() {
+            document.getElementById('pov-container').style.backgroundColor = state.povColor;
+        }
+
+        function applyFormat() {
+            const container = document.getElementById('preview-container');
+            const canvasContent = document.getElementById('canvas-content');
+            const mainContent = document.getElementById('main-content-area');
+            const header = document.getElementById('header-section');
+            const footer = document.getElementById('footer-section');
+            const searchIcons = document.getElementById('search-icons');
+
+            if (state.format === 'feed') {
+                // FEED MODE (4:5)
+                container.style.aspectRatio = '4/5';
+                container.style.maxWidth = '400px';
+                
+                // Show Mic/Lens in Feed
+                searchIcons.style.display = 'flex';
+
+                // Centering Logic
+                header.style.paddingTop = '1rem'; 
+                mainContent.classList.remove('pt-8');
+                canvasContent.classList.add('justify-center');
+                
+                // Margin for "Safe Center"
+                header.style.marginTop = '15%'; 
+                footer.style.marginBottom = '15%';
+                footer.style.paddingBottom = '2rem'; // Reset bottom padding
+                
+                // Standard Padding
+                header.classList.remove('px-6'); header.classList.add('px-4');
+                mainContent.classList.remove('px-6'); mainContent.classList.add('px-4');
+                footer.classList.remove('px-6'); footer.classList.add('px-4');
+
+            } else {
+                // STORY MODE (9:16)
+                container.style.aspectRatio = '9/16';
+                container.style.maxWidth = '360px';
+                
+                // Hide Mic/Lens in Story (More room for text)
+                searchIcons.style.display = 'none';
+
+                // Reset Feed Centering
+                canvasContent.classList.remove('justify-center');
+                header.style.marginTop = '0';
+                footer.style.marginBottom = '0';
+
+                // Story Specific Layout
+                mainContent.classList.add('pt-8');
+                header.style.paddingTop = '7.5rem'; 
+
+                // Increased Horizontal Padding (Safety from edges)
+                header.classList.remove('px-4'); header.classList.add('px-6');
+                mainContent.classList.remove('px-4'); mainContent.classList.add('px-6');
+                footer.classList.remove('px-4'); footer.classList.add('px-6');
+
+                // Increased Bottom Padding (10% extra + normal padding)
+                footer.style.paddingBottom = 'calc(2rem + 10%)'; 
+            }
+        }
+
+        function applyTheme() {
+            const els = {
+                container: document.getElementById('preview-container'),
+                header: document.getElementById('header-section'),
+                searchBar: document.getElementById('search-bar'),
+                query: document.getElementById('display-query'),
+                tabs: document.getElementById('tabs-container'),
+                body: document.getElementById('display-body'),
+                brandName: document.getElementById('display-brand-name'),
+                brandUrl: document.getElementById('display-brand-url'),
+                footerDesc: document.getElementById('display-footer-desc'),
+                footer: document.getElementById('footer-section'),
+                favicon: document.getElementById('favicon-container')
+            };
+
+            if (state.theme === 'dark') {
+                // Dark Mode Colors
+                els.container.style.backgroundColor = '#202124';
+                els.header.style.backgroundColor = '#202124';
+                els.footer.style.backgroundColor = '#202124';
+                
+                els.searchBar.classList.remove('bg-white', 'google-shadow', 'border-transparent');
+                els.searchBar.classList.add('bg-[#303134]', 'border-[#5f6368]', 'shadow-none');
+                
+                els.query.classList.replace('text-[#202124]', 'text-[#e8eaed]');
+                
+                // Tabs
+                els.tabs.classList.remove('border-gray-200');
+                els.tabs.classList.add('border-gray-700');
+                
+                els.body.classList.replace('text-[#202124]', 'text-[#bdc1c6]');
+                
+                els.brandName.classList.replace('text-[#1a0dab]', 'text-[#8ab4f8]');
+                
+                els.brandUrl.classList.replace('text-[#202124]', 'text-[#bdc1c6]');
+                els.footerDesc.classList.replace('text-[#4d5156]', 'text-[#bdc1c6]');
+                
+                // Favicon
+                els.favicon.classList.remove('border-gray-200');
+                els.favicon.classList.add('border-transparent');
+
+            } else {
+                // Light Mode
+                els.container.style.backgroundColor = '#ffffff';
+                els.header.style.backgroundColor = '#ffffff';
+                els.footer.style.backgroundColor = '#ffffff';
+
+                els.searchBar.classList.add('bg-white', 'google-shadow', 'border-transparent');
+                els.searchBar.classList.remove('bg-[#303134]', 'border-[#5f6368]', 'shadow-none');
+
+                els.query.classList.replace('text-[#e8eaed]', 'text-[#202124]');
+
+                els.tabs.classList.add('border-gray-200');
+                els.tabs.classList.remove('border-gray-700');
+
+                els.body.classList.replace('text-[#bdc1c6]', 'text-[#202124]');
+
+                els.brandName.classList.replace('text-[#8ab4f8]', 'text-[#1a0dab]');
+
+                els.brandUrl.classList.replace('text-[#bdc1c6]', 'text-[#202124]');
+                els.footerDesc.classList.replace('text-[#bdc1c6]', 'text-[#4d5156]');
+
+                // Favicon
+                els.favicon.classList.add('border-gray-200');
+                els.favicon.classList.remove('border-transparent');
+            }
+        }
+
+        // --- Controls ---
+        function setFormat(fmt) {
+            state.format = fmt;
+            updateButtonStates();
+            updateUI();
+        }
+
+        function setTheme(t) {
+            state.theme = t;
+            updateButtonStates();
+            updateUI();
+        }
+
+        function setPovColor(c) {
+            state.povColor = c;
+            renderColorPicker(); 
+            updateUI();
+        }
+
+        function updateButtonStates() {
+            const btnFeed = document.getElementById('btn-fmt-feed');
+            const btnStory = document.getElementById('btn-fmt-story');
+            
+            if (state.format === 'feed') {
+                btnFeed.classList.replace('bg-gray-700', 'bg-blue-600');
+                btnStory.classList.replace('bg-blue-600', 'bg-gray-700');
+            } else {
+                btnStory.classList.replace('bg-gray-700', 'bg-blue-600');
+                btnFeed.classList.replace('bg-blue-600', 'bg-gray-700');
+            }
+
+            const btnLight = document.getElementById('btn-theme-light');
+            const btnDark = document.getElementById('btn-theme-dark');
+            
+            if (state.theme === 'light') {
+                btnLight.classList.replace('bg-gray-700', 'bg-blue-600');
+                btnLight.classList.replace('text-gray-200', 'text-white');
+                btnDark.classList.replace('bg-blue-600', 'bg-gray-700');
+            } else {
+                btnDark.classList.replace('bg-gray-700', 'bg-blue-600');
+                btnDark.classList.replace('text-gray-200', 'text-white');
+                btnLight.classList.replace('bg-blue-600', 'bg-gray-700');
+            }
+        }
+
+        // --- Download Logic ---
+        function downloadAd() {
+            const container = document.getElementById('preview-container');
+            
+            // 1. Temporarily strip "Phone" styling for export
+            const originalBorder = container.style.borderWidth;
+            const originalRadius = container.style.borderRadius;
+            const originalShadow = container.style.boxShadow;
+            
+            // Force clean rectangular look
+            container.style.borderWidth = '0';
+            container.style.borderRadius = '0';
+            container.style.boxShadow = 'none';
+
+            // 2. High Res Capture
+            html2canvas(container, {
+                scale: 3, 
+                backgroundColor: state.theme === 'dark' ? '#202124' : '#ffffff',
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `google-search-ad-${state.format}-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // 3. Restore "Phone" styling
+                container.style.borderWidth = originalBorder;
+                container.style.borderRadius = originalRadius;
+                container.style.boxShadow = originalShadow;
+            });
+        }
+
+        // Run
+        init();
+
+    </script>
+</body>
+</html>
