@@ -85,7 +85,7 @@
         <div class="p-6 space-y-6">
             <div class="flex items-center justify-between border-b border-white/10 pb-4">
                 <h1 class="text-xl font-bold text-white">Ad Generator</h1>
-                <span class="text-xs text-gray-500 font-mono">v1.7</span>
+                <span class="text-xs text-gray-500 font-mono">v1.9</span>
             </div>
             
             <!-- 1. Format & Theme -->
@@ -463,6 +463,11 @@
                 // Centering Logic
                 header.style.paddingTop = '1rem'; 
                 mainContent.classList.remove('pt-8');
+                mainContent.classList.remove('pt-6'); 
+                
+                // Add Small spacing for Feed
+                mainContent.classList.add('pt-4'); 
+
                 canvasContent.classList.add('justify-center');
                 
                 // Margin for "Safe Center"
@@ -489,8 +494,11 @@
                 footer.style.marginBottom = '0';
 
                 // Story Specific Layout
-                mainContent.classList.remove('pt-8'); // Removed extra top padding
-                header.style.paddingTop = '7.5rem'; 
+                mainContent.classList.remove('pt-8'); // Ensure legacy is gone
+                mainContent.classList.remove('pt-4'); // Ensure feed spacing is gone
+                mainContent.classList.add('pt-6'); // Add specific spacing for Story
+                
+                header.style.paddingTop = '6rem'; // Moved up from 7.5rem
 
                 // Increased Horizontal Padding (Safety from edges)
                 header.classList.remove('px-4'); header.classList.add('px-6');
