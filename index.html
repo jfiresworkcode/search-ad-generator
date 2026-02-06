@@ -85,7 +85,7 @@
         <div class="p-6 space-y-6">
             <div class="flex items-center justify-between border-b border-white/10 pb-4">
                 <h1 class="text-xl font-bold text-white">Ad Generator</h1>
-                <span class="text-xs text-gray-500 font-mono">v1.9</span>
+                <span class="text-xs text-gray-500 font-mono">v2.8</span>
             </div>
             
             <!-- 1. Format & Theme -->
@@ -274,8 +274,9 @@
                     <!-- Content Wrapper for Vertical Centering -->
                     <div class="w-full space-y-4">
                         <!-- POV Tag -->
-                        <div id="pov-container" class="inline-block bg-[#d93025] rounded-[10px] px-3 py-2 w-auto max-w-full shadow-sm transition-colors duration-200">
-                            <h2 id="display-pov" class="text-white font-bold leading-tight break-words">
+                        <!-- FIX: Added z-0 to container and z-10 to text to force correct stacking order in download -->
+                        <div id="pov-container" class="inline-block bg-[#d93025] rounded-[10px] px-3 py-2 w-auto max-w-full shadow-sm transition-colors duration-200 relative z-0">
+                            <h2 id="display-pov" class="text-white font-bold leading-tight break-words relative z-10">
                                 POV: You decided life is too short to wear uncomfortable pants
                             </h2>
                         </div>
@@ -296,7 +297,8 @@
                         <!-- Favicon Circle -->
                         <div id="favicon-container" class="w-7 h-7 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0 border border-gray-200 transition-colors duration-300">
                             <!-- Custom Logo Image -->
-                            <img src="logo.png" class="w-8 h-8 object-contain" alt="Bearbottom Logo">
+                            <!-- Increased size from w-5 h-5 to w-6 h-6 for better visibility -->
+                            <img src="logo.png" class="w-6 h-6 object-contain" alt="Bearbottom Logo">
                         </div>
                         
                         <!-- URL Only (Vertically Centered with Logo) -->
@@ -362,24 +364,7 @@
             }
         };
 
-        // --- Init ---
-        function init() {
-            // Render Color Picker
-            renderColorPicker();
-
-            // Set Input Values
-            document.getElementById('input-query').value = state.text.query;
-            document.getElementById('input-pov').value = state.text.pov;
-            document.getElementById('input-body').value = state.text.body;
-            document.getElementById('input-brand-name').value = state.text.brandName;
-            document.getElementById('input-brand-url').value = state.text.brandUrl;
-            document.getElementById('input-footer-desc').value = state.text.footerDesc;
-
-            // Set Initial Format/Theme Button States
-            updateButtonStates();
-            updateUI();
-        }
-
+        // --- Helpers ---
         function renderColorPicker() {
             const container = document.getElementById('color-picker-container');
             container.innerHTML = ''; // Clear
@@ -393,43 +378,30 @@
             });
         }
 
-        // --- Core Update Logic ---
-        function updateUI() {
-            // 1. Capture Inputs
-            state.text.query = document.getElementById('input-query').value;
-            state.text.pov = document.getElementById('input-pov').value;
-            state.text.body = document.getElementById('input-body').value;
-            state.text.brandName = document.getElementById('input-brand-name').value;
-            state.text.brandUrl = document.getElementById('input-brand-url').value;
-            state.text.footerDesc = document.getElementById('input-footer-desc').value;
+        function updateButtonStates() {
+            const btnFeed = document.getElementById('btn-fmt-feed');
+            const btnStory = document.getElementById('btn-fmt-story');
             
-            // 2. Capture Sliders
-            state.sizes.query = document.getElementById('slider-query-size').value;
-            state.sizes.pov = document.getElementById('slider-pov-size').value;
-            state.sizes.body = document.getElementById('slider-body-size').value;
-            state.sizes.brand = document.getElementById('slider-brand-size').value;
-            state.sizes.footer = document.getElementById('slider-footer-size').value;
+            if (state.format === 'feed') {
+                btnFeed.classList.replace('bg-gray-700', 'bg-blue-600');
+                btnStory.classList.replace('bg-blue-600', 'bg-gray-700');
+            } else {
+                btnStory.classList.replace('bg-gray-700', 'bg-blue-600');
+                btnFeed.classList.replace('bg-blue-600', 'bg-gray-700');
+            }
 
-            // Update Slider Labels
-            document.getElementById('val-query-size').innerText = state.sizes.query + 'px';
-            document.getElementById('val-pov-size').innerText = state.sizes.pov + 'px';
-            document.getElementById('val-body-size').innerText = state.sizes.body + 'px';
-            document.getElementById('val-brand-size').innerText = state.sizes.brand + 'px';
-            document.getElementById('val-footer-size').innerText = state.sizes.footer + 'px';
-
-            // 3. Update DOM Elements
-            document.getElementById('display-query').innerText = state.text.query;
-            document.getElementById('display-pov').innerText = state.text.pov;
-            document.getElementById('display-body').innerText = state.text.body;
-            document.getElementById('display-brand-name').innerText = state.text.brandName;
-            document.getElementById('display-brand-url').innerText = state.text.brandUrl;
-            document.getElementById('display-footer-desc').innerText = state.text.footerDesc;
-
-            // 4. Apply Styles & Sizes
-            applyTypography();
-            applyFormat();
-            applyTheme();
-            applyPovColor();
+            const btnLight = document.getElementById('btn-theme-light');
+            const btnDark = document.getElementById('btn-theme-dark');
+            
+            if (state.theme === 'light') {
+                btnLight.classList.replace('bg-gray-700', 'bg-blue-600');
+                btnLight.classList.replace('text-gray-200', 'text-white');
+                btnDark.classList.replace('bg-blue-600', 'bg-gray-700');
+            } else {
+                btnDark.classList.replace('bg-gray-700', 'bg-blue-600');
+                btnDark.classList.replace('text-gray-200', 'text-white');
+                btnLight.classList.replace('bg-blue-600', 'bg-gray-700');
+            }
         }
 
         function applyTypography() {
@@ -464,16 +436,14 @@
                 header.style.paddingTop = '1rem'; 
                 mainContent.classList.remove('pt-8');
                 mainContent.classList.remove('pt-6'); 
-                
-                // Add Small spacing for Feed
-                mainContent.classList.add('pt-4'); 
+                mainContent.classList.add('pt-2'); // Minimal spacing
 
                 canvasContent.classList.add('justify-center');
                 
-                // Margin for "Safe Center"
-                header.style.marginTop = '15%'; 
-                footer.style.marginBottom = '15%';
-                footer.style.paddingBottom = '2rem'; // Reset bottom padding
+                // ADJUSTED MARGINS TO PREVENT CLIPPING
+                header.style.marginTop = '5%'; 
+                footer.style.marginBottom = '2%';
+                footer.style.paddingBottom = '2rem'; 
                 
                 // Standard Padding
                 header.classList.remove('px-6'); header.classList.add('px-4');
@@ -494,18 +464,18 @@
                 footer.style.marginBottom = '0';
 
                 // Story Specific Layout
-                mainContent.classList.remove('pt-8'); // Ensure legacy is gone
-                mainContent.classList.remove('pt-4'); // Ensure feed spacing is gone
-                mainContent.classList.add('pt-6'); // Add specific spacing for Story
+                mainContent.classList.remove('pt-8'); 
+                mainContent.classList.remove('pt-2'); 
+                mainContent.classList.add('pt-4'); 
                 
-                header.style.paddingTop = '6rem'; // Moved up from 7.5rem
+                header.style.paddingTop = '6rem'; 
 
-                // Increased Horizontal Padding (Safety from edges)
+                // Increased Horizontal Padding
                 header.classList.remove('px-4'); header.classList.add('px-6');
                 mainContent.classList.remove('px-4'); mainContent.classList.add('px-6');
                 footer.classList.remove('px-4'); footer.classList.add('px-6');
 
-                // Increased Bottom Padding (10% extra + normal padding)
+                // Increased Bottom Padding
                 footer.style.paddingBottom = 'calc(2rem + 10%)'; 
             }
         }
@@ -578,86 +548,130 @@
             }
         }
 
-        // --- Controls ---
-        function setFormat(fmt) {
+        function updateUI() {
+            // 1. Capture Inputs
+            state.text.query = document.getElementById('input-query').value;
+            state.text.pov = document.getElementById('input-pov').value;
+            state.text.body = document.getElementById('input-body').value;
+            state.text.brandName = document.getElementById('input-brand-name').value;
+            state.text.brandUrl = document.getElementById('input-brand-url').value;
+            state.text.footerDesc = document.getElementById('input-footer-desc').value;
+            
+            // 2. Capture Sliders
+            state.sizes.query = document.getElementById('slider-query-size').value;
+            state.sizes.pov = document.getElementById('slider-pov-size').value;
+            state.sizes.body = document.getElementById('slider-body-size').value;
+            state.sizes.brand = document.getElementById('slider-brand-size').value;
+            state.sizes.footer = document.getElementById('slider-footer-size').value;
+
+            // Update Slider Labels
+            document.getElementById('val-query-size').innerText = state.sizes.query + 'px';
+            document.getElementById('val-pov-size').innerText = state.sizes.pov + 'px';
+            document.getElementById('val-body-size').innerText = state.sizes.body + 'px';
+            document.getElementById('val-brand-size').innerText = state.sizes.brand + 'px';
+            document.getElementById('val-footer-size').innerText = state.sizes.footer + 'px';
+
+            // 3. Update DOM Elements
+            document.getElementById('display-query').innerText = state.text.query;
+            document.getElementById('display-pov').innerText = state.text.pov;
+            document.getElementById('display-body').innerText = state.text.body;
+            document.getElementById('display-brand-name').innerText = state.text.brandName;
+            document.getElementById('display-brand-url').innerText = state.text.brandUrl;
+            document.getElementById('display-footer-desc').innerText = state.text.footerDesc;
+
+            // 4. Apply Styles & Sizes
+            applyTypography();
+            applyFormat();
+            applyTheme();
+            applyPovColor();
+        }
+
+        // --- Explicitly attach controls to window to prevent scope errors ---
+        
+        window.setFormat = function(fmt) {
             state.format = fmt;
             updateButtonStates();
             updateUI();
-        }
+        };
 
-        function setTheme(t) {
+        window.setTheme = function(t) {
             state.theme = t;
+            updateButtonStates();
+            updateUI();
+        };
+
+        window.setPovColor = function(c) {
+            state.povColor = c;
+            renderColorPicker(); 
+            updateUI();
+        };
+
+        window.downloadAd = function() {
+            const container = document.getElementById('preview-container');
+            
+            // 1. Snapshot current styles
+            const originalBorder = container.style.borderWidth;
+            const originalRadius = container.style.borderRadius;
+            const originalShadow = container.style.boxShadow;
+            const originalPadding = container.style.padding;
+            
+            // 2. Prep for Export
+            container.style.borderWidth = '0';
+            container.style.borderRadius = '0';
+            container.style.boxShadow = 'none';
+            // Add padding to compensate for lost border space, maintaining the "inner" width
+            container.style.padding = '8px'; 
+
+            // Scroll to top to avoid vertical cutoff issues
+            window.scrollTo(0, 0);
+
+            // Wait longer for DOM paint to finish style application
+            setTimeout(() => {
+                // 3. High Res Capture
+                html2canvas(container, {
+                    scale: 3, 
+                    backgroundColor: state.theme === 'dark' ? '#202124' : '#ffffff',
+                    useCORS: true,
+                    scrollY: 0, // Force top align
+                    logging: false,
+                    allowTaint: true
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `google-search-ad-${state.format}-${Date.now()}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    // 4. Restore Styles
+                    container.style.borderWidth = originalBorder;
+                    container.style.borderRadius = originalRadius;
+                    container.style.boxShadow = originalShadow;
+                    container.style.padding = originalPadding;
+                });
+            }, 300); // Increased delay to 300ms for safety
+        };
+
+        // --- Init ---
+        function init() {
+            // Render Color Picker
+            renderColorPicker();
+
+            // Set Input Values
+            document.getElementById('input-query').value = state.text.query;
+            document.getElementById('input-pov').value = state.text.pov;
+            document.getElementById('input-body').value = state.text.body;
+            document.getElementById('input-brand-name').value = state.text.brandName;
+            document.getElementById('input-brand-url').value = state.text.brandUrl;
+            document.getElementById('input-footer-desc').value = state.text.footerDesc;
+
+            // Set Initial Format/Theme Button States
             updateButtonStates();
             updateUI();
         }
 
-        function setPovColor(c) {
-            state.povColor = c;
-            renderColorPicker(); 
-            updateUI();
-        }
-
-        function updateButtonStates() {
-            const btnFeed = document.getElementById('btn-fmt-feed');
-            const btnStory = document.getElementById('btn-fmt-story');
-            
-            if (state.format === 'feed') {
-                btnFeed.classList.replace('bg-gray-700', 'bg-blue-600');
-                btnStory.classList.replace('bg-blue-600', 'bg-gray-700');
-            } else {
-                btnStory.classList.replace('bg-gray-700', 'bg-blue-600');
-                btnFeed.classList.replace('bg-blue-600', 'bg-gray-700');
-            }
-
-            const btnLight = document.getElementById('btn-theme-light');
-            const btnDark = document.getElementById('btn-theme-dark');
-            
-            if (state.theme === 'light') {
-                btnLight.classList.replace('bg-gray-700', 'bg-blue-600');
-                btnLight.classList.replace('text-gray-200', 'text-white');
-                btnDark.classList.replace('bg-blue-600', 'bg-gray-700');
-            } else {
-                btnDark.classList.replace('bg-gray-700', 'bg-blue-600');
-                btnDark.classList.replace('text-gray-200', 'text-white');
-                btnLight.classList.replace('bg-blue-600', 'bg-gray-700');
-            }
-        }
-
-        // --- Download Logic ---
-        function downloadAd() {
-            const container = document.getElementById('preview-container');
-            
-            // 1. Temporarily strip "Phone" styling for export
-            const originalBorder = container.style.borderWidth;
-            const originalRadius = container.style.borderRadius;
-            const originalShadow = container.style.boxShadow;
-            
-            // Force clean rectangular look
-            container.style.borderWidth = '0';
-            container.style.borderRadius = '0';
-            container.style.boxShadow = 'none';
-
-            // 2. High Res Capture
-            html2canvas(container, {
-                scale: 3, 
-                backgroundColor: state.theme === 'dark' ? '#202124' : '#ffffff',
-                useCORS: true,
-                logging: false
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `google-search-ad-${state.format}-${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                
-                // 3. Restore "Phone" styling
-                container.style.borderWidth = originalBorder;
-                container.style.borderRadius = originalRadius;
-                container.style.boxShadow = originalShadow;
-            });
-        }
-
-        // Run
-        init();
+        // Run init after DOM Ready to be safe
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+        });
 
     </script>
 </body>
